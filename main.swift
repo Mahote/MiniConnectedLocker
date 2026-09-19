@@ -1,12 +1,12 @@
 protocol SensorReadable {
     associatedtype Reading
     var value: Reading {get set}
-    func readValue() async -> Reading
+    func getRandomValue()
     func getInfo() -> String
 }
 
 protocol Calibratable {
-    func calibrate() async
+    func calibrate()
 }
 
 protocol AdvancedSensor: SensorReadable {
@@ -22,13 +22,11 @@ extension AdvancedSensor {
 class FakeHeartSensor: AdvancedSensor & Calibratable{
     var value: Int = 0
     var name = "Heart sensor"
-    func readValue() async -> Int {
-        try? await Task.sleep(nanoseconds: 500_000_000)
+    func getRandomValue() {
         value = Int.random(in: 50...160)
-        return value
     }
 
-    func calibrate() async {
+    func calibrate() {
         value = Int.random(in: 40...70) 
     }
 }
@@ -36,17 +34,15 @@ class FakeHeartSensor: AdvancedSensor & Calibratable{
 class TemperatureSensor: AdvancedSensor  & Calibratable {
     var value: Double = 0
     var name = "Temperature sensor"
-    func readValue() async -> Double {
-        try? await Task.sleep(nanoseconds: 500_000_000)
+    func getRandomValue() {
         value = Double.random(in: -10.0...40.0)
-        return value
     }
 
     func getInfo() -> String {
         return "Iam override ? Yes"
     }
 
-    func calibrate() async {
+    func calibrate() {
         value = Double.random(in: 15.0...25.0) 
     }
 }
@@ -62,29 +58,41 @@ func compareReading<S1: SensorReadable, S2: SensorReadable>(s1: S1, s2: S2)  -> 
     }
 }
 
-func setupSensor<S: AdvancedSensor & Calibratable>(sensor: S) async {
+func setupSensor<S: AdvancedSensor & Calibratable>(sensor: S) {
     print(sensor.name)
-    await sensor.calibrate()
+    sensor.calibrate()
     print("Reading before calibration: \(sensor.value)")
-    let reading = await sensor.readValue()
-    print("Reading after calibration: \(reading)")
+    sensor.getRandomValue()
+    print("Reading after calibration: \(sensor.value)")
 
 }
 
-func run<S: AdvancedSensor>(sensor: S) async {
+func run<S: AdvancedSensor>(sensor: S) {
     for _ in 1...5 {
-        await sensor.readValue()
+        sensor.getRandomValue()
         print(sensor.getInfo())
     }
 }
-var fakeHeartSensor = FakeHeartSensor()
-var temperatureFakeSensor = TemperatureSensor()
-await setupSensor(sensor: fakeHeartSensor)
-await setupSensor(sensor: temperatureFakeSensor)
 
+func createHeartSensor() -> some AdvancedSensor & Calibratable {
+    return FakeHeartSensor()
+}
 
-let sensor1 = FakeHeartSensor()
-let sensor2 = FakeHeartSensor()
-await setupSensor(sensor: sensor1)
-await setupSensor(sensor: sensor2)
-await compareReading(s1: sensor1, s2: sensor2)
+func createTemperatureSensor() -> some AdvancedSensor & Calibratable {
+    return TemperatureSensor()
+}
+
+// let sensor1 = createHeartSensor()
+// let sensor2 = createHeartSensor()
+// setupSensor(sensor: sensor1)  
+// setupSensor(sensor: sensor2)
+
+let sensors: [any SensorReadable] = [
+    FakeHeartSensor(),
+    TemperatureSensor()
+]
+
+for sensor in sensors {
+    sensor.getRandomValue()
+    print(sensor.getInfo())
+}
