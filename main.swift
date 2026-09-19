@@ -5,12 +5,22 @@ protocol SensorReadable {
     func describe(value: Reading) -> String
 }
 
-class FakeHeartSensor: SensorReadable {
+protocol AdvancedSensor: SensorReadable {
+    var name: String {get}
+    func getInfo() -> String
+}
+
+class FakeHeartSensor: AdvancedSensor {
     var value: Int = 0
+    var name = "Heart sensor"
     func readValue() async -> Int {
         try? await Task.sleep(nanoseconds: 500_000_000)
         value = Int.random(in: 50...100)
         return value
+    }
+
+    func getInfo() -> String {
+        return "Named : \(name) \n value : \(self.describe(value))"
     }
 
     func describe(value: Int) -> String {
@@ -18,12 +28,17 @@ class FakeHeartSensor: SensorReadable {
     }
 }
 
-class TemperatureSensor: SensorReadable {
+class TemperatureSensor: AdvancedSensor {
     var value: Double = 0
+    var name = "Temperature sensor"
     func readValue() async -> Double {
         try? await Task.sleep(nanoseconds: 500_000_000)
         value = Double.random(in: -10.0...40.0)
         return value
+    }
+
+    func getInfo() -> String {
+        return "Named : \(name) \n value : \(self.describe(value))"
     }
 
     func describe(value: Double)  -> String {
@@ -31,24 +46,16 @@ class TemperatureSensor: SensorReadable {
     }
 }
 
-// class FakeHeartSensor: SensorReadable {
-// var value: Int = 0
-//     func readValue() async -> Int {
-//         // Simulate reading a value from a sensor
-//         try? await Task.sleep(nanoseconds: 500_000_000)
-//         self.setValue(newValue: Int.random(in: 50...100))
-//         return value
-//     }
-//     mutating func setValue(newValue: Reading){
-//         value = newValue
-//     }
-    
-// }
+func printSensorInfo<S: AdvancedSensor>(sensor: S) -> String {
+    return "Named : \(sensor.name) \n value : \(sensor.describe(value))"
+}
 
-func run<S: SensorReadable>(sensor: S) async {
+
+func run<S: AdvancedSensor>(sensor: S) async {
     for _ in 1...5 {
         let bpm = await sensor.readValue()
         print(sensor.describe(value: bpm))
+        print(sensor.getInfo())
     }
 }
 var fakeHeartSensor = FakeHeartSensor()
