@@ -51,6 +51,17 @@ class TemperatureSensor: AdvancedSensor  & Calibratable {
     }
 }
 
+func compareReading<S1: SensorReadable, S2: SensorReadable>(s1: S1, s2: S2)  -> Bool 
+    where S1.Reading == S2.Reading, S1.Reading: Comparable {
+    if s1.value > s2.value {
+        print("Sensor1 (\(s1.value)) > Sensor2 (\(s2.value))")
+        return true
+    } else {
+        print("Sensor2 (\(s2.value)) >= Sensor1 (\(s1.value))")
+        return false
+    }
+}
+
 func setupSensor<S: AdvancedSensor & Calibratable>(sensor: S) async {
     print(sensor.name)
     await sensor.calibrate()
@@ -70,3 +81,10 @@ var fakeHeartSensor = FakeHeartSensor()
 var temperatureFakeSensor = TemperatureSensor()
 await setupSensor(sensor: fakeHeartSensor)
 await setupSensor(sensor: temperatureFakeSensor)
+
+
+let sensor1 = FakeHeartSensor()
+let sensor2 = FakeHeartSensor()
+await setupSensor(sensor: sensor1)
+await setupSensor(sensor: sensor2)
+await compareReading(s1: sensor1, s2: sensor2)
