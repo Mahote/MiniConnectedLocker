@@ -5,9 +5,13 @@ protocol SensorReadable {
     func getInfo() -> String
 }
 
+protocol Calibratable {
+    func calibrate() async
+}
+
 protocol AdvancedSensor: SensorReadable {
     var name: String {get}
-}
+} 
 
 extension AdvancedSensor {
     func getInfo() -> String {
@@ -15,17 +19,21 @@ extension AdvancedSensor {
         }
 }
 
-class FakeHeartSensor: AdvancedSensor {
+class FakeHeartSensor: AdvancedSensor & Calibratable{
     var value: Int = 0
     var name = "Heart sensor"
     func readValue() async -> Int {
         try? await Task.sleep(nanoseconds: 500_000_000)
-        value = Int.random(in: 50...100)
+        value = Int.random(in: 50...160)
         return value
+    }
+
+    func calibrate() async {
+        value = Int.random(in: 40...70) 
     }
 }
 
-class TemperatureSensor: AdvancedSensor {
+class TemperatureSensor: AdvancedSensor  & Calibratable {
     var value: Double = 0
     var name = "Temperature sensor"
     func readValue() async -> Double {
@@ -37,6 +45,19 @@ class TemperatureSensor: AdvancedSensor {
     func getInfo() -> String {
         return "Iam override ? Yes"
     }
+
+    func calibrate() async {
+        value = Double.random(in: 15.0...25.0) 
+    }
+}
+
+func setupSensor<S: AdvancedSensor & Calibratable>(sensor: S) async {
+    print(sensor.name)
+    await sensor.calibrate()
+    print("Reading before calibration: \(sensor.value)")
+    let reading = await sensor.readValue()
+    print("Reading after calibration: \(reading)")
+
 }
 
 func run<S: AdvancedSensor>(sensor: S) async {
@@ -47,5 +68,5 @@ func run<S: AdvancedSensor>(sensor: S) async {
 }
 var fakeHeartSensor = FakeHeartSensor()
 var temperatureFakeSensor = TemperatureSensor()
-await run(sensor: fakeHeartSensor)
-await run(sensor: temperatureFakeSensor)
+await setupSensor(sensor: fakeHeartSensor)
+await setupSensor(sensor: temperatureFakeSensor)
