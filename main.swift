@@ -2,12 +2,17 @@ protocol SensorReadable {
     associatedtype Reading
     var value: Reading {get set}
     func readValue() async -> Reading
-    func describe(value: Reading) -> String
+    func getInfo() -> String
 }
 
 protocol AdvancedSensor: SensorReadable {
     var name: String {get}
-    func getInfo() -> String
+}
+
+extension AdvancedSensor {
+    func getInfo() -> String {
+            return "Named : \(self.name) \n value : \(self.value)"
+        }
 }
 
 class FakeHeartSensor: AdvancedSensor {
@@ -17,14 +22,6 @@ class FakeHeartSensor: AdvancedSensor {
         try? await Task.sleep(nanoseconds: 500_000_000)
         value = Int.random(in: 50...100)
         return value
-    }
-
-    func getInfo() -> String {
-        return "Named : \(name) \n value : \(self.describe(value))"
-    }
-
-    func describe(value: Int) -> String {
-        return "heartrate is \(value.description) bpm"
     }
 }
 
@@ -38,23 +35,13 @@ class TemperatureSensor: AdvancedSensor {
     }
 
     func getInfo() -> String {
-        return "Named : \(name) \n value : \(self.describe(value))"
-    }
-
-    func describe(value: Double)  -> String {
-        return "Temperature is \(value.description) degrees"
+        return "Iam override ? Yes"
     }
 }
-
-func printSensorInfo<S: AdvancedSensor>(sensor: S) -> String {
-    return "Named : \(sensor.name) \n value : \(sensor.describe(value))"
-}
-
 
 func run<S: AdvancedSensor>(sensor: S) async {
     for _ in 1...5 {
-        let bpm = await sensor.readValue()
-        print(sensor.describe(value: bpm))
+        await sensor.readValue()
         print(sensor.getInfo())
     }
 }
