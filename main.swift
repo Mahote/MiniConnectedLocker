@@ -1,12 +1,21 @@
+enum SensorError: Error {
+    case disconnected
+    case lowBattery
+    case calibrationFailed
+    case timeout
+}
+
+
+
 protocol SensorReadable {
     associatedtype Reading
     var value: Reading {get set}
-    func getRandomValue()
-    func getInfo() -> String
+    func getRandomValue() throws
+    func getInfo() throws -> String
 }
 
 protocol Calibratable {
-    func calibrate()
+    func calibrate() throws
 }
 
 protocol AdvancedSensor: SensorReadable {
@@ -14,7 +23,11 @@ protocol AdvancedSensor: SensorReadable {
 } 
 
 extension AdvancedSensor {
-    func getInfo() -> String {
+    func getInfo() throws -> String {
+            if Bool.random() {
+                print("Sensor is disconnected")
+            throw SensorError.disconnected
+            }
             return "Named : \(self.name) \n value : \(self.value)"
         }
 }
@@ -22,11 +35,18 @@ extension AdvancedSensor {
 class FakeHeartSensor: AdvancedSensor & Calibratable{
     var value: Int = 0
     var name = "Heart sensor"
-    func getRandomValue() {
+    func getRandomValue() throws {
+        if Bool.random() {
+            throw SensorError.timeout
+        }
         value = Int.random(in: 50...160)
     }
 
-    func calibrate() {
+    func calibrate() throws {
+        if Bool.random() {
+            print("Calibration failed")
+            throw SensorError.calibrationFailed
+        }
         value = Int.random(in: 40...70) 
     }
 }
@@ -34,15 +54,26 @@ class FakeHeartSensor: AdvancedSensor & Calibratable{
 class TemperatureSensor: AdvancedSensor  & Calibratable {
     var value: Double = 0
     var name = "Temperature sensor"
-    func getRandomValue() {
+    func getRandomValue() throws {
+        if Bool.random() {
+            throw SensorError.disconnected
+        }
         value = Double.random(in: -10.0...40.0)
     }
 
-    func getInfo() -> String {
-        return "Iam override ? Yes"
+    func getInfo() throws -> String {
+        if Bool.random() {
+            print("Sensor is low on battery")
+            throw SensorError.lowBattery
+        }
+        return "Named : \(self.name) \n value : \(self.value)"
     }
 
-    func calibrate() {
+    func calibrate() throws {
+        if Bool.random() {
+            print("Calibration failed")
+            throw SensorError.calibrationFailed
+        }
         value = Double.random(in: 15.0...25.0) 
     }
 }
@@ -55,22 +86,6 @@ func compareReading<S1: SensorReadable, S2: SensorReadable>(s1: S1, s2: S2)  -> 
     } else {
         print("Sensor2 (\(s2.value)) >= Sensor1 (\(s1.value))")
         return false
-    }
-}
-
-func setupSensor<S: AdvancedSensor & Calibratable>(sensor: S) {
-    print(sensor.name)
-    sensor.calibrate()
-    print("Reading before calibration: \(sensor.value)")
-    sensor.getRandomValue()
-    print("Reading after calibration: \(sensor.value)")
-
-}
-
-func run<S: AdvancedSensor>(sensor: S) {
-    for _ in 1...5 {
-        sensor.getRandomValue()
-        print(sensor.getInfo())
     }
 }
 
@@ -87,12 +102,24 @@ func createTemperatureSensor() -> some AdvancedSensor & Calibratable {
 // setupSensor(sensor: sensor1)  
 // setupSensor(sensor: sensor2)
 
-let sensors: [any SensorReadable] = [
+let sensors: [any SensorReadable & Calibratable] = [
     FakeHeartSensor(),
     TemperatureSensor()
 ]
 
 for sensor in sensors {
-    sensor.getRandomValue()
-    print(sensor.getInfo())
+    do {
+        try sensor.calibrate()
+        try sensor.getRandomValue()
+        print(try sensor.getInfo())
+    } catch SensorError.disconnected {
+        print("Sensor is disconnected")
+    } catch SensorError.lowBattery {
+        print("Sensor is low on battery")
+    } catch SensorError.calibrationFailed {
+        print("Calibration failed")
+    } catch SensorError.timeout {
+        print("Sensor timeout")
+    }
+    
 }
